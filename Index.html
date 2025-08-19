@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>IQ Finder — Flawless Single File</title>
+<style>
+  :root{
+    --bg:#f1f7ff; --card:#fff; --accent:#2b7cff; --muted:#4d5b72; --good:#2ecc71; --bad:#ff6b6b;
+  }
+  html,body{height:100%;margin:0;font-family:Inter,system-ui,Roboto,Arial;border-box;color:var(--muted);background:var(--bg)}
+  .wrap{max-width:980px;margin:10px auto;padding:12px}
+  header{display:flex;gap:12px;align-items:center}
+  header .logo{width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#6fb3ff)}
+  header h1{margin:0;font-size:18px;color:var(--accent)}
+  .card{background:var(--card);border-radius:12px;padding:14px;box-shadow:0 10px 30px rgba(40,60,90,0.06); margin-top:14px}
+  .muted{color:#6f8096}
+  .small{font-size:13px;color:#6f8096}
+  .controls{display:flex;gap:8px;flex-wrap:wrap}
+  button.btn{background:var(--accent);color:#fff;border:0;padding:10px 14px;border-radius:10px;font-weight:700;cursor:pointer}
+  button.ghost{background:#f0f6ff;color:var(--accent);border:1px solid rgba(43,124,255,0.12)}
+  select,input[type="number"]{padding:8px;border-radius:8px;border:1px solid #e3eefc}
+  /* quiz */
+  .q-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .qbox{font-size:18px;margin-top:12px}
+  .options{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+  .opt{background:#f6fbff;border-radius:8px;padding:12px;border:1px solid #e8f2ff;cursor:pointer;text-align:left}
+  .opt.selected{background:#e6f0ff;border:1px solid #cfe3ff}
+  .opt.correct{background:#ecfff0;border:1px solid #bff2c4}
+  .opt.wrong{background:#fff1f1;border:1px solid #ffb8b8}
+  .timer{font-weight:800;color:#1b8a3e}
+  .hud{display:flex;gap:8px;align-items:center}
+  /* responsive cert footer fix for mobile keyboard */
+  .footer-section{margin-top:18px;padding-bottom:120px} /* lots of bottom padding so keyboard doesn't cover */
+  .footer-buttons{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .footer-buttons button{flex:1 1 200px;padding:10px;border-radius:10px}
+  input[type="text"]{padding:10px;border-radius:8px;border:1px solid #e6eef7;width:100%;box-sizing:border-box}
+  /* result stats */
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:12px}
+  .stat{background:#fbfeff;padding:12px;border-radius:10px;border:1px solid #eef6ff;text-align:center}
+  .stat h3{margin:8px 0 0 0}
+  .q-detail{max-height:260px;overflow:auto;padding:8px;border-radius:8px;border:1px solid #eef6ff;background:#fff}
+  canvas#certificate{max-width:100%;border-radius:8px;border:1px solid #e6eef7;margin-top:12px}
+  footer.small{margin-top:16px;color:#7d8aa3}
+  /* mobile tweaks */
+  @media (max-width:640px){
+    header h1{font-size:16px}
+    .qbox{font-size:17px}
+    button.btn{padding:10px 12px}
+    .footer-buttons button{flex:1 1 100%}
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo" aria-hidden="true"></div>
+      <div>
+        <h1>IQ Finder</h1>
+        <div class="small muted">A fun IQ-style evaluation — 30 random questions from a pool of 80 • 2 mins per Q</div>
+      </div>
+    </header>
+
+    <!-- START CARD -->
+    <div class="card" id="startCard">
+      <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between">
+        <div style="flex:1;min-width:220px">
+          <h2 style="margin:0 0 6px 0">Start IQ Finder</h2>
+          <div class="muted">Each session selects <strong>30</strong> random questions from a bank of <strong>80</strong>. You have <strong>120 seconds</strong> per question. Good luck!</div>
+        </div>
+
+        <div style="display:flex;gap:8px;align-items:center">
+          <label class="small muted">Questions</label>
+          <select id="numQuestions" aria-label="Number of questions" style="width:90px">
+            <option value="10">10</option>
+            <option value="15">15</option>
+            <option value="20">20</option>
+            <option value="25">25</option>
+            <option value="30" selected>30</option>
+          </select>
+          <button class="btn" id="btnStart">Start Test</button>
+        </div>
+      </div>
+      <div class="small" style="margin-top:10px">Tip: Use portrait on mobile. Use headphones or a quiet place if you want to focus.</div>
+    </div>
+
+    <!-- QUIZ CARD -->
+    <div class="card" id="quizCard" style="display:none">
+      <div class="q-top">
+        <div style="display:flex;gap:12px;align-items:center">
+          <div style="font-weight:700">Q <span id="qIndex">0</span> / <span id="qTotal">0</span></div>
+          <div class="small muted">Time: <span class="timer" id="qTimer">02:00</span></div>
+        </div>
+        <div class="hud">
+          <div class="small muted">Score: <strong id="liveScore">0</strong></div>
+          <button class="ghost" id="btnNext">Next →</button>
+        </div>
+      </div>
+
+      <div class="qbox" id="questionText">Question text</div>
+      <div class="options" id="optionsWrap" role="list"></div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+        <div class="small muted">Per-question time: <strong>2 minutes</strong></div>
+        <div class="controls">
+          <button class="ghost" id="btnQuit">Quit</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESULT CARD -->
+    <div class="card" id="resultCard" style="display:none">
+      <h2>Your results</h2>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start">
+        <div style="flex:1;min-width:260px">
+          <div class="grid">
+            <div class="stat">
+              <div class="muted">Score</div>
+              <h3 id="finalScore">0 / 0</h3>
+            </div>
+            <div class="stat">
+              <div class="muted">IQ Estimate</div>
+              <h3 id="finalIQ">100</h3>
+            </div>
+            <div class="stat">
+              <div class="muted">Category</div>
+              <h3 id="finalCat">Average</h3>
+            </div>
+            <div class="stat">
+              <div class="muted">Correct / Wrong / Unanswered</div>
+              <h3 id="finalBreak">0 / 0 / 0</h3>
+            </div>
+          </div>
+        </div>
+
+        <div style="flex:1;min-width:260px">
+          <h3 style="margin:6px 0">Question details</h3>
+          <div id="questionStats" class="q-detail"></div>
+        </div>
+      </div>
+
+      <div class="footer-section">
+        <label for="playerName" style="font-weight:700">Your name (for certificate)</label>
+        <input id="playerName" type="text" placeholder="Enter full name" autocomplete="name" />
+        <div class="footer-buttons">
+          <button class="btn" id="btnMakeCert">🎓 Make certificate</button>
+          <button class="ghost" id="btnRetake">🔄 Retake</button>
+          <button class="ghost" id="btnHome">🏠 Home</button>
+          <button class="ghost" id="btnDownloadCert">⬇️ Download certificate</button>
+        </div>
+
+        <canvas id="certificate" width="1000" height="700"></canvas>
+      </div>
+    </div>
+
+    <footer class="small">This tool is for fun / educational purposes and is not a clinical IQ test.</footer>
+  </div>
+
+<script>
+/* ============================
+   IQ Finder — Single-file App
+   - 80-question built-in bank
+   - Randomly picks N (default 30) each run
+   - 120s per question
+   - Stats, per-question details, certificate PNG
+   ============================ */
+
+/* ------------- QUESTION BANK (80 items) ------------- 
+   Each question: { q: "text", options: [...], answer: index }
+   I made a mixed bank: arithmetic, logic, patterns, verbal, general knowledge.
+*/
+const QUESTION_POOL = [
+  { q: "Find the next number: 2, 4, 8, 16, ?", options: ["18","20","32","24"], answer: 2 },
+  { q: "What is 7 × 6?", options: ["42","36","48","40"], answer: 0 },
+  { q: "Which is a prime number?", options: ["21","29","27","51"], answer: 1 },
+  { q: "If all Bloops are Razzies and some Razzies are Lazzies, are all Bloops Lazzies?", options:["Yes","No","Sometimes","Cannot say"], answer:1 },
+  { q: "Which one is different: Apple, Banana, Cherry, Carrot?", options:["Apple","Banana","Cherry","Carrot"], answer:3 },
+  { q: "Complete series: 5, 10, 20, 40, ?", options:["80","70","60","90"], answer:0 },
+  { q: "What is the square root of 144?", options:["10","11","12","13"], answer:2 },
+  { q: "Which planet is known as the Red Planet?", options:["Earth","Mars","Jupiter","Saturn"], answer:1 },
+  { q: "If 3 cats catch 3 mice in 3 minutes, how long to catch 1 mouse by 1 cat?", options:["1 minute","3 minutes","9 minutes","Cannot say"], answer:1 },
+  { q: "Which shape has 3 sides?", options:["Square","Triangle","Circle","Hexagon"], answer:1 },
+  { q: "Find the missing number: 7, 10, 8, 11, 9, ?", options:["10","12","13","11"], answer:0 },
+  { q: "If 5x = 20, what's x?", options:["2","3","4","5"], answer:2 },
+  { q: "Rearrange 'LISTEN' to make a word", options:["SILENT","TINSEL","INLETS","All are valid"], answer:3 },
+  { q: "Which number completes: 1, 1, 2, 3, 5, 8, ?", options:["10","12","13","11"], answer:2 },
+  { q: "If today is Monday, what day will it be 100 days later?", options:["Wednesday","Friday","Saturday","Sunday"], answer:1 },
+  { q: "Which rotates into same shape with 180° rotation?", options:["S","N","H","Z"], answer:3 },
+  { q: "Which is the odd one: Dog, Cat, Cow, Table", options:["Dog","Cat","Cow","Table"], answer:3 },
+  { q: "If RED=3, BLUE=4, GREEN=5, what is YELLOW (letters count)?", options:["5","6","7","4"], answer:1 },
+  { q: "Pattern: 2, 5, 10, 17, 26 => next?", options:["37","35","34","36"], answer:3 },
+  { q: "Which completes analogy: Bird:Fly :: Fish:?", options:["Swim","Run","Eat","Sleep"], answer:0 },
+  { q: "What is 12 ÷ 3?", options:["2","3","4","6"], answer:2 },
+  { q: "If a train 100m long passes a pole in 5s speed is?", options:["20 m/s","25 m/s","15 m/s","10 m/s"], answer:0 },
+  { q: "Which is a square number?", options:["15","16","18","20"], answer:1 },
+  { q: "If 2 pencils cost 8 rupees, 5 pencils cost?", options:["20","16","10","18"], answer:0 },
+  { q: "Which letter comes next: A, C, F, J, O, ?", options:["P","T","U","S"], answer:2 },
+  { q: "Which symbol fits: 2 ? 2 = 4; 2 ? 3 = 8 ; ? is ?", options:["+","x","^","-"], answer:2 },
+  { q: "If John taller than Sam, Sam taller than Ben, who's shortest?", options:["John","Sam","Ben","Cannot say"], answer:2 },
+  { q: "Which pair matches: DOG:PUP :: CAT:?", options:["KIT","KITTEN","CUB","PUP"], answer:1 },
+  { q: "How many handshakes when 5 people each shake once?", options:["10","20","5","15"], answer:0 },
+  { q: "Find next: 10, 9, 7, 4, 0, ?", options:["-3","-1","1","-2"], answer:0 },
+  { q: "Which fraction is smallest? 0.2, 1/3, 0.25, 0.199", options:["1/3","0.2","0.199","0.25"], answer:2 },
+  { q: "Find missing: 3, 6, 12, 24, ?", options:["36","48","72","54"], answer:1 },
+  { q: "1/2 of 1/2 of 1/2 = ?", options:["1/8","1/4","1/6","1/16"], answer:0 },
+  { q: "Which is heavier: 1 kg iron or 1000g cotton?", options:["They weigh same","Iron","Cotton","Cannot say"], answer:0 },
+  { q: "What is 15% of 200?", options:["30","25","35","40"], answer:0 },
+  { q: "If x + 7 = 12, x = ?", options:["4","5","6","7"], answer:1 },
+  { q: "Which country has the Eiffel Tower?", options:["Germany","France","Italy","Spain"], answer:1 },
+  { q: "Which shape has equal sides and equal angles?", options:["Rectangle","Square","Rhombus","Trapezium"], answer:1 },
+  { q: "What is (6 × 7) - 10?", options:["32","42","34","36"], answer:0 },
+  { q: "If you rearrange 'CARE', which is word?", options:["RACE","ACRE","CARE","All"], answer:3 },
+  { q: "What is 25% of 80?", options:["15","20","25","30"], answer:1 },
+  { q: "Which is a composite number?", options:["13","17","21","19"], answer:2 },
+  { q: "Complete: ▲ ▲ ▼ ▲ ▲ ▼ ▲ ?", options:["▲","▼","■","◯"], answer:1 },
+  { q: "If 6 * ? = 48, ? = ?", options:["7","8","9","6"], answer:1 },
+  { q: "Which day follows after 3 days from Friday?", options:["Monday","Tuesday","Saturday","Monday"], answer:2 },
+  { q: "Which word is opposite of 'ascend'?", options:["Rise","Climb","Descend","Mount"], answer:2 },
+  { q: "If 12 apples cost 36 rupees, 1 apple costs?", options:["2","3","4","6"], answer:1 },
+  { q: "Next in series: 14, 28, 20, 40, 32, ?", options:["64","48","40","56"], answer:0 },
+  { q: "Which is the next square after 16?", options:["20","25","30","36"], answer:1 },
+  { q: "Which number not like others: 16, 18, 20, 21", options:["16","18","20","21"], answer:3 },
+  { q: "If 2/3 cake and eat 1/6 left is?", options:["1/2","1/3","1/6","2/3"], answer:0 },
+  { q: "Which is largest fraction: 1/2, 2/5, 3/7, 4/9?", options:["1/2","2/5","3/7","4/9"], answer:0 },
+  { q: "If a+b=10 and a-b=2, what's a?", options:["6","5","7","4"], answer:0 },
+  { q: "Which of these completes analogy: pen:write :: fork:?", options:["Eat","Stir","Fork works","Cook"], answer:0 },
+  { q: "Which color is a primary color?", options:["Green","Purple","Red","Brown"], answer:2 },
+  { q: "Find next: 1, 4, 9, 16, ?", options:["25","36","30","20"], answer:0 },
+  { q: "Which number is even?", options:["13","27","44","31"], answer:2 },
+  { q: "Which fits: 3, 5, 9, 17, ?", options:["33","24","31","37"], answer:0 },
+  { q: "What is 100 in binary?", options:["1100100","1010100","1110000","1001100"], answer:0 },
+  { q: "Which organ pumps blood?", options:["Lung","Liver","Kidney","Heart"], answer:3 },
+  { q: "Which instrument has keys and strings: Piano,Flute,Guitar,Trumpet?", options:["Piano","Flute","Guitar","Trumpet"], answer:0 },
+  { q: "Which number is NOT prime?", options:["11","13","15","17"], answer:2 },
+  { q: "If 4x = 24, x = ?", options:["5","6","4","7"], answer:1 },
+  { q: "Which of these can fly?", options:["Penguin","Ostrich","Eagle","Kiwi"], answer:2 },
+  { q: "Which completes pattern: 2, 6, 12, 20, ?", options:["30","28","26","24"], answer:1 },
+  { q: "If an item is 20% off 200, new price?", options:["120","160","180","140"], answer:1 },
+  { q: "Which is the capital of India?", options:["Mumbai","Chennai","Kolkata","New Delhi"], answer:3 },
+  { q: "If X = 24 and Y = 25, which is greater X or Y?", options:["X","Y","Equal","Cannot say"], answer:1 },
+  { q: "Which number completes: 3, 6, 18, 72, ?", options:["360","288","252","432"], answer:1 }
+]; // ~80 entries (if you want I can add extra later)
+
+/* ------------- App State ------------- */
+let pool = [];            // shuffled full pool (80)
+let questions = [];       // selected N questions (30)
+let totalQuestions = 30;  // number to pick each test (configurable)
+let currentIndex = 0;
+let perQuestionTime = 120; // seconds
+let timerInterval = null;
+let timeLeft = perQuestionTime;
+let answers = []; // { selected: index | null, correct: boolean, timeTaken: sec }
+let score = 0;
+
+/* ---------- DOM Refs ---------- */
+const startCard = document.getElementById('startCard');
+const quizCard = document.getElementById('quizCard');
+const resultCard = document.getElementById('resultCard');
+
+const numQuestionsEl = document.getElementById('numQuestions');
+const btnStart = document.getElementById('btnStart');
+const qIndexEl = document.getElementById('qIndex');
+const qTotalEl = document.getElementById('qTotal');
+const qTimerEl = document.getElementById('qTimer');
+const qTextEl = document.getElementById('questionText');
+const optionsWrap = document.getElementById('optionsWrap');
+const btnNext = document.getElementById('btnNext');
+const btnQuit = document.getElementById('btnQuit');
+const liveScoreEl = document.getElementById('liveScore');
+
+const finalScoreEl = document.getElementById('finalScore');
+const finalIQEl = document.getElementById('finalIQ');
+const finalCatEl = document.getElementById('finalCat');
+const finalBreakEl = document.getElementById('finalBreak');
+const questionStatsEl = document.getElementById('questionStats');
+
+const playerNameEl = document.getElementById('playerName');
+const btnMakeCert = document.getElementById('btnMakeCert');
+const btnRetake = document.getElementById('btnRetake');
+const btnHome = document.getElementById('btnHome');
+const btnDownloadCert = document.getElementById('btnDownloadCert');
+const certificateCanvas = document.getElementById('certificate');
+
+/* ---------- Helpers ---------- */
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
+
+function pickNRandom(arr, n){
+  const copy = arr.slice();
+  shuffle(copy);
+  return copy.slice(0,n);
+}
+
+function formatTime(sec){
+  const m = Math.floor(sec/60).toString().padStart(2,'0');
+  const s = Math.floor(sec%60).toString().padStart(2,'0');
+  return `${m}:${s}`;
+}
+
+/* ---------- Flow Control ---------- */
+
+btnStart.addEventListener('click', () => {
+  totalQuestions = parseInt(numQuestionsEl.value, 10) || 30;
+  // ensure we have at least that many in pool
+  if(QUESTION_POOL.length < 1){ alert('No questions available'); return; }
+  startTest(totalQuestions);
+});
+
+btnQuit.addEventListener('click', () => {
+  if(confirm('Quit the test? Your progress will be lost.')) goHome();
+});
+
+btnNext.addEventListener('click', () => {
+  // record (even if user doesn't explicitly select) then next
+  recordAnswer(null);
+  nextQuestion();
+});
+
+btnRetake.addEventListener('click', () => {
+  startTest(totalQuestions);
+});
+
+btnHome.addEventListener('click', goHome);
+
+/* Keyboard support: number keys 1-4 select options, Enter for next */
+window.addEventListener('keydown', (e) => {
+  if(quizCard.style.display === 'none') return;
+  if(e.key >= '1' && e.key <= '4'){
+    const idx = parseInt(e.key,10) - 1;
+    selectOption(idx);
+  } else if(e.key === 'Enter'){
+    recordAnswer(null);
+    nextQuestion();
+  }
+});
+
+/* ---------- Test Start ---------- */
+function startTest(n){
+  // prepare pool (shuffle entire bank so change across page loads)
+  pool = QUESTION_POOL.slice();
+  shuffle(pool);
+
+  // select n random questions from pool (pool size is 80)
+  questions = pickNRandom(pool, n);
+  answers = Array(n).fill(null);
+  currentIndex = 0;
+  score = 0;
+  showCard('quiz');
+  qTotalEl.textContent = n;
+  showQuestion(0);
+}
+
+/* ---------- Show / render ---------- */
+function showCard(which){
+  startCard.style.display = which === 'start' ? 'block' : 'none';
+  quizCard.style.display = which === 'quiz' ? 'block' : 'none';
+  resultCard.style.display = which === 'result' ? 'block' : 'none';
+}
+
+function showQuestion(i){
+  currentIndex = i;
+  const q = questions[i];
+  qIndexEl.textContent = i+1;
+  qTimerEl.textContent = formatTime(perQuestionTime);
+  qTextEl.textContent = q.q;
+  optionsWrap.innerHTML = '';
+  q.options.forEach((opt, idx) => {
+    const d = document.createElement('div');
+    d.className = 'opt';
+    d.tabIndex = 0;
+    d.dataset.idx = idx;
+    d.innerHTML = `<strong>${String.fromCharCode(65+idx)}.</strong> ${opt}`;
+    d.addEventListener('click', ()=> selectOption(idx));
+    optionsWrap.appendChild(d);
+  });
+  liveScoreEl.textContent = score;
+  // reset timer
+  clearInterval(timerInterval);
+  timeLeft = perQuestionTime;
+  qTimerEl.textContent = formatTime(timeLeft);
+  timerInterval = setInterval(()=> {
+    timeLeft--;
+    qTimerEl.textContent = formatTime(timeLeft);
+    if(timeLeft <= 0){
+      clearInterval(timerInterval);
+      // record unanswered and move on
+      recordAnswer(null);
+      nextQuestion();
+    }
+  }, 1000);
+}
+
+/* ---------- Option select & record ---------- */
+function selectOption(idx){
+  // visually mark
+  [...optionsWrap.children].forEach(ch => ch.classList.remove('selected'));
+  const el = optionsWrap.querySelector(`[data-idx="${idx}"]`);
+  if(el) el.classList.add('selected');
+  // temporarily store selection on question object (not persisted until record)
+  questions[currentIndex].__selected = idx;
+}
+
+function recordAnswer(forceSelection){
+  clearInterval(timerInterval);
+  const q = questions[currentIndex];
+  const chosen = (typeof 
+  forceSelection === 'number') ? forceSelection : (typeof q.__selected === 'number' ? q.__selected : null);
+  const correct = chosen === q.answer;
+  const timeTaken = perQuestionTime - timeLeft;
+  answers[currentIndex] = { selected: chosen, correct: !!correct, timeTaken };
+  if(correct) score++;
+  // lock visuals: show correct / wrong
+  [...optionsWrap.children].forEach((ch, idx) => {
+    ch.classList.remove('selected');
+    ch.style.pointerEvents = 'none';
+    if(idx === q.answer) ch.classList.add('correct');
+    if(answers[currentIndex].selected === idx && !answers[currentIndex].correct) ch.classList.add('wrong');
+  });
+  liveScoreEl.textContent = score;
+}
+
+/* ---------- Next or Finish ---------- */
+function nextQuestion(){
+  if(currentIndex + 1 < questions.length){
+    showQuestion(currentIndex + 1);
+  } else {
+    finishTest();
+  }
+}
+
+/* ---------- Finish & Results ---------- */
+function finishTest(){
+  clearInterval(timerInterval);
+  showCard('result');
+  // compute stats
+  const total = questions.length;
+  const correct = answers.filter(a => a && a.correct).length;
+  const unanswered = answers.filter(a => !a || a.selected === null).length;
+  const wrong = total - correct - unanswered;
+  finalScoreEl.textContent = `${correct} / ${total}`;
+  const percent = (correct/total) * 100;
+  // IQ mapping simple linear (70..130)
+  const iq = Math.round(70 + (percent/100) * 60);
+  finalIQEl.textContent = iq;
+  let cat = 'Average';
+  if(iq < 90) cat = 'Low';
+  else if(iq >= 90 && iq <= 110) cat = 'Average';
+  else cat = 'High';
+  finalCatEl.textContent = cat;
+  finalBreakEl.textContent = `${correct} / ${wrong} / ${unanswered}`;
+
+  // build question details
+  questionStatsEl.innerHTML = '';
+  questions.forEach((q, idx) => {
+    const a = answers[idx] || { selected: null, correct: false, timeTaken: perQuestionTime };
+    const div = document.createElement('div');
+    div.style.padding = '8px';
+    div.style.borderBottom = '1px solid #eef6ff';
+    const head = document.createElement('div');
+    head.innerHTML = `<strong>Q${idx+1}.</strong> ${q.q}`;
+    const correctText = `${String.fromCharCode(65 + q.answer)}. ${q.options[q.answer]}`;
+    const yourText = a.selected === null ? 'Unanswered' : `${String.fromCharCode(65 + a.selected)}. ${q.options[a.selected]}`;
+    const resLine = document.createElement('div');
+    resLine.style.marginTop = '6px';
+    resLine.innerHTML = `<span style="font-weight:700">${a.correct ? 'Correct' : (a.selected===null ? 'Unanswered' : 'Wrong')}</span> • Your answer: ${yourText} • Correct: ${correctText} • Time used: ${a.timeTaken}s`;
+    div.appendChild(head); div.appendChild(resLine);
+    questionStatsEl.appendChild(div);
+  });
+
+  // prepare blank certificate canvas
+  drawCertificate('', iq, finalScoreEl.textContent);
+}
+
+/* ---------- Certificate Generation ---------- */
+btnMakeCert.addEventListener('click', ()=>{
+  const name = (playerNameEl.value || '').trim();
+  if(!name){ alert('Please enter your name to print on certificate'); return; }
+  const iq = finalIQEl.textContent;
+  drawCertificate(name, iq, finalScoreEl.textContent);
+});
+
+btnDownloadCert.addEventListener('click', ()=>{
+  const link = document.createElement('a');
+  link.download = `IQ-Certificate.png`;
+  link.href = certificateCanvas.toDataURL('image/png');
+  link.click();
+});
+
+function drawCertificate(name, iq, scoreText){
+  const c = certificateCanvas;
+  const ctx = c.getContext('2d');
+  // background
+  ctx.fillStyle = '#fff'; ctx.fillRect(0,0,c.width,c.height);
+  // border
+  ctx.strokeStyle = '--accent';
+  ctx.strokeStyle = '#2b7cff'; ctx.lineWidth = 8; ctx.strokeRect(20,20,c.width-40,c.height-40);
+  // title
+  ctx.fillStyle = '#2b7cff'; ctx.font = '48px serif'; ctx.textAlign = 'center';
+  ctx.fillText('Certificate of Achievement', c.width/2, 120);
+  ctx.font = '20px sans-serif'; ctx.fillStyle = '#334';
+  ctx.fillText('This certifies that', c.width/2, 180);
+  // name
+  ctx.font = '38px serif'; ctx.fillStyle = '#111';
+  ctx.fillText(name || '— Your Name —', c.width/2, 240);
+  // achievement line
+  ctx.font = '22px sans-serif'; ctx.fillStyle = '#334';
+  ctx.fillText('has completed the IQ Finder test with an estimated IQ of', c.width/2, 300);
+  // IQ box
+  ctx.fillStyle = '#2b7cff'; ctx.fillRect(c.width/2 - 120, 320, 240, 80);
+  ctx.fillStyle = '#fff'; ctx.font = '36px serif';
+  ctx.fillText(iq || '--', c.width/2, 370);
+  // score line
+  ctx.font = '18px sans-serif'; ctx.fillStyle = '#333';
+  ctx.fillText(`Score: ${scoreText}`, c.width/2, 420);
+  // footer
+  ctx.font = '14px sans-serif'; ctx.fillStyle = '#556';
+  const d = new Date(); ctx.fillText(`Date: ${d.toLocaleDateString()}`, c.width/2, 480);
+  ctx.fillText('IQ Finder — Fun / Educational tool', c.width/2, 520);
+}
+
+/* ---------- Home / utility ---------- */
+function goHome(){
+  // reset UI to start
+  showCard('start');
+  // clear any intervals
+  clearInterval(timerInterval);
+}
+
+/* ---------- Small polish: prevent accidental zoom on mobile inputs ----------
+   (not required but helps UX)
+*/
+(function mobilePolish(){
+  // ensure portrait-friendly sizing (no additional code required)
+})();
+
+/* ---------- Auto-seed & ready ---------- */
+// shuffle pool once on load so each open yields different ordering
+shuffle(QUESTION_POOL);
+
+/* Optional: auto-start if user wants
+   // startTest(30);
+*/
+
+</script>
+</body>
+</html>

@@ -565,27 +565,58 @@ function goHome(){
 shuffle(QUESTION_POOL);
 
 /* Optional: auto-start if user wants
-   // startTest(30);
-*/
-
-</script><section id="about" style="padding:40px; background:#fafafa;">
-  <h2>About Us</h2>
-  <p>Welcome to our Fun IQ Test website! We provide simple and fun quizzes designed to challenge your mind and improve your logical skills.</p>
+   // startTest(30)<!-- About Us Section -->
+<section id="about" style="padding:50px; background:#f4f4f4; text-align:center;">
+  <h2 style="font-size:2em; margin-bottom:20px;">ℹ️ About Us</h2>
+  <p style="max-width:800px; margin:auto; font-size:1.1em; line-height:1.6;">
+    Welcome to our Fun IQ Test website! 🎉  
+    Our mission is to provide entertaining IQ tests, games, study notes, motivation, 
+    health tips, horoscopes, and history articles — all in one place.  
+    We aim to save your time and make learning + fun available for everyone!
+  </p>
 </section>
 
-<section id="contact" style="padding:40px; background:#fff;">
-  <h2>Contact Us</h2>
-  <p>If you have any queries, you can reach us at:</p>
-  <p>Email: support@example.com</p>
+<!-- Contact Us Section -->
+<section id="contact" style="padding:50px; background:linear-gradient(135deg, #6dd5fa, #2980b9); color:white; text-align:center;">
+  <h2 style="font-size:2em; margin-bottom:20px;">📩 Contact Us</h2>
+  <p style="margin-bottom:30px; font-size:1.1em;">We’d love to hear from you! Fill out the form below.</p>
+
+  <form action="mailto:youremail@example.com" method="post" enctype="text/plain" 
+        style="max-width:500px; margin:auto; background:white; color:black; padding:25px; border-radius:12px; box-shadow:0 4px 10px rgba(0,0,0,0.2);">
+    
+    <div style="margin-bottom:15px; text-align:left;">
+      <label for="name" style="display:block; margin-bottom:5px; font-weight:bold;">Your Name</label>
+      <input type="text" id="name" name="name" required 
+             style="width:100%; padding:12px; border:1px solid #ccc; border-radius:8px;">
+    </div>
+
+    <div style="margin-bottom:15px; text-align:left;">
+      <label for="email" style="display:block; margin-bottom:5px; font-weight:bold;">Your Email</label>
+      <input type="email" id="email" name="email" required 
+             style="width:100%; padding:12px; border:1px solid #ccc; border-radius:8px;">
+    </div>
+
+    <div style="margin-bottom:15px; text-align:left;">
+      <label for="message" style="display:block; margin-bottom:5px; font-weight:bold;">Message</label>
+      <textarea id="message" name="message" rows="5" required 
+                style="width:100%; padding:12px; border:1px solid #ccc; border-radius:8px;"></textarea>
+    </div>
+
+    <button type="submit" 
+            style="background:#2980b9; color:white; padding:12px 25px; border:none; border-radius:8px; font-size:1em; cursor:pointer; transition:0.3s;">
+      Send Message
+    </button>
+  </form>
 </section>
 
-<section id="privacy" style="padding:40px; background:#fafafa;">
-  <h2>Privacy Policy</h2>
-  <p>We value your privacy. This website does not collect personal data apart from your quiz score and name for certificates. We do not share your information with third parties.</p>
-</section><footer style="text-align:center; padding:20px; background:#f5f5f5; margin-top:30px;">
-  <a href="#about">About Us</a> | 
-  <a href="#contact">Contact Us</a> | 
-  <a href="#privacy">Privacy Policy</a>
-</footer>
+<!-- Privacy Policy Section -->
+<section id="privacy" style="padding:50px; background:#222; color:white; text-align:center;">
+  <h2 style="font-size:2em; margin-bottom:20px;">🔒 Privacy Policy</h2>
+  <p style="max-width:800px; margin:auto; font-size:1.1em; line-height:1.6;">
+    Your privacy is important to us. We do not collect personal data without your consent.  
+    Any information you provide through the contact form will only be used to reply to your queries.  
+    We never share your details with third parties. By using our site, you agree to our terms.  
+  </p>
+</section>
 </body>
 </html>
